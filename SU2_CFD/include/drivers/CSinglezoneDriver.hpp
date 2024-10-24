@@ -115,7 +115,7 @@ public:
    * \param[in] solver - pointer to the BFM solver
    * \param[in] geometry - pointer to the geometry class
    */
-  void ModifyOriginalGeometry(CSolver* solver, CGeometry* geometry);
+  void ComputeModifiedGeometry(CSolver* solver, CGeometry* geometry);
 
 
 

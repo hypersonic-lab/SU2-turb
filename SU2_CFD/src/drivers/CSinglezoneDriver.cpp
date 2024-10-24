@@ -102,28 +102,29 @@ void CSinglezoneDriver::StartSolver() {
 
 }
 
-void CSinglezoneDriver::ModifyOriginalGeometry(CSolver* solver, CGeometry* geometry){
+void CSinglezoneDriver::ComputeModifiedGeometry(CSolver* solver, CGeometry* geometry){
   auto sol_nodes = solver->GetNodes();
   unsigned long nPoints = sol_nodes->GetNPoints();
   auto geo_nodes = geometry->nodes;
 
   // Modify the volume of the cells
-  // for (unsigned long iPoint=0; iPoint<nPoints ; iPoint++){
-  //   su2double volume = geo_nodes->GetVolume(iPoint);
-  //   auto blockage = sol_nodes->GetAuxVar(iPoint, I_BLOCKAGE_FACTOR);
+  for (unsigned long iPoint=0; iPoint<nPoints ; iPoint++){
+    su2double volume = geo_nodes->GetVolume(iPoint);
+    auto blockage = sol_nodes->GetAuxVar(iPoint, I_BLOCKAGE_FACTOR);
   
-  //   if (blockage<1){
-  //     std::cout << std::endl;
-  //     std::cout << "Point " << iPoint << " has volume " << volume << " and blockage " << blockage << std::endl;
-  //     geo_nodes->SetVolume(iPoint, volume*blockage);
-  //     std::cout << "After scaling, has volume " << geo_nodes->GetVolume(iPoint) << std::endl;
-  //     std::cout << std::endl;
-  //   }
-  // }
+    if (blockage<1){
+      std::cout << std::endl;
+      std::cout << "Point " << iPoint << " has volume " << volume << " and blockage " << blockage << std::endl;
+      geo_nodes->SetVolume(iPoint, volume);
+      std::cout << "After scaling, has volume " << geo_nodes->GetVolume(iPoint) << std::endl;
+      std::cout << std::endl;
+    }
+  }
 
   // Modify the surfaces normals
   auto edges = geometry_container[ZONE_0][INST_0][MESH_0]->edges;
   unsigned long nEdge = edges->GetNEdges();
+  edges->InstantiateModifiedNormal();
   for (unsigned long iEdge=0; iEdge<nEdge; iEdge++){
     auto normal = edges->GetNormal(iEdge);
 
@@ -133,14 +134,11 @@ void CSinglezoneDriver::ModifyOriginalGeometry(CSolver* solver, CGeometry* geome
 
     // Reduce the surface
     su2double* modified_normal = new su2double[nDim];
-    edges->InstantiateModifiedNormal();
     if (blockage<1){
     std::cout << "Edge " << iEdge << " has normal: [";
     for (size_t iDim=0; iDim<nDim; iDim++){
       std::cout << normal[iDim] << ",";
-      if (iDim==2){modified_normal[iDim] = normal[iDim]*blockage;}
-      else {modified_normal[iDim] = normal[iDim];}
-      
+      modified_normal[iDim] = normal[iDim]*blockage;
     }
     std::cout << "] ";
 
@@ -152,7 +150,7 @@ void CSinglezoneDriver::ModifyOriginalGeometry(CSolver* solver, CGeometry* geome
     }
     std::cout << "]\n\n";
     }
-    delete modified_normal;
+    delete [] modified_normal;
   }
 }
 
@@ -195,9 +193,9 @@ void CSinglezoneDriver::Preprocess(unsigned long TimeIter) {
 
   /*--- If the simulation is of BFM type, the volumes of cells, and the normals of the edges
   should be rescaled by the blockage factor ---*/
-  // if (config_container[ZONE_0]->GetBFM()){
-  //   ModifyOriginalGeometry(solver_container[ZONE_0][INST_0][MESH_0][BFM_SOL], geometry_container[ZONE_0][INST_0][MESH_0]);
-  // }
+  if (config_container[ZONE_0]->GetBFM()){
+    ComputeModifiedGeometry(solver_container[ZONE_0][INST_0][MESH_0][BFM_SOL], geometry_container[ZONE_0][INST_0][MESH_0]);
+  }
 
   SU2_MPI::Barrier(SU2_MPI::GetComm());
 

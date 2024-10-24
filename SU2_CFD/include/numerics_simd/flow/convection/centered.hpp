@@ -102,11 +102,21 @@ public:
     /*--- Geometric properties. ---*/
 
     const auto normal = gatherVariables<nDim>(iEdge, geometry.edges->GetNormal());
+    auto modified_normal = gatherVariables<nDim>(iEdge, geometry.edges->GetModifiedNormal());
     const auto area = norm(normal);
+    auto modified_area = norm(modified_normal);
     VectorDbl<nDim> unitNormal;
+    VectorDbl<nDim> unitNormalModified;
     for (size_t iDim = 0; iDim < nDim; ++iDim) {
-      unitNormal(iDim) = normal(iDim) / area;
+      unitNormal(iDim) = normal(iDim) / area; // this is the real normal direction, that should be preserved
     }
+    
+    // now recreate the modified normal such that is aligned with the original unitNormal
+    for (size_t iDim = 0; iDim < nDim; ++iDim) {
+      unitNormalModified(iDim) = unitNormal(iDim);  // so the normal is aligned with the original one
+      modified_normal(iDim) = modified_area*unitNormalModified(iDim);  // so the modified area has the same direction of the original one
+    }
+
 
     /*--- Primitive variables. ---*/
 
@@ -135,12 +145,12 @@ public:
 
     /*--- Inviscid fluxes and Jacobians. ---*/
 
-    auto flux = inviscidProjFlux(avgV, avgU, normal);
+    auto flux = inviscidProjFlux(avgV, avgU, modified_normal);
 
     MatrixDbl<nVar> jac_i, jac_j;
     if (implicit) {
-      jac_i = inviscidProjJac(gamma, V.i.velocity(), U.i.energy(), normal, 0.5);
-      jac_j = inviscidProjJac(gamma, V.j.velocity(), U.j.energy(), normal, 0.5);
+      jac_i = inviscidProjJac(gamma, V.i.velocity(), U.i.energy(), modified_normal, 0.5);
+      jac_j = inviscidProjJac(gamma, V.j.velocity(), U.j.energy(), modified_normal, 0.5);
     }
 
     /*--- Grid motion. ---*/
@@ -148,8 +158,8 @@ public:
     Double projGridVel = 0.0;
     if (dynamicGrid) {
       const auto& gridVel = geometry.nodes->GetGridVel();
-      projGridVel = 0.5*(dot(gatherVariables<nDim>(iPoint,gridVel), normal)+
-                         dot(gatherVariables<nDim>(jPoint,gridVel), normal));
+      projGridVel = 0.5*(dot(gatherVariables<nDim>(iPoint,gridVel), modified_normal)+
+                         dot(gatherVariables<nDim>(jPoint,gridVel), modified_normal));
 
       for (size_t iVar = 0; iVar < nVar; ++iVar) {
         flux(iVar) -= projGridVel * avgU.all(iVar);
@@ -160,19 +170,19 @@ public:
       }
     }
 
-    const Double projVel = dot(avgV.velocity(), normal) - projGridVel;
+    const Double projVel = dot(avgV.velocity(), modified_normal) - projGridVel;
 
     /*--- Finalize in derived class (static polymorphism). ---*/
 
     const auto derived = static_cast<const Derived*>(this);
 
-    derived->finalizeFlux(flux, jac_i, jac_j, implicit, area, projVel, avgV, V,
-                          diffU, iPoint, jPoint, geometry, solution, unitNormal);
+    derived->finalizeFlux(flux, jac_i, jac_j, implicit, modified_area, projVel, avgV, V,
+                          diffU, iPoint, jPoint, geometry, solution, unitNormalModified);
 
     /*--- Add the contributions from the base class (static decorator). ---*/
 
     Base::viscousTerms(iEdge, iPoint, jPoint, avgV, V, solution_, geometry,
-                       config, area, unitNormal, implicit, flux, jac_i, jac_j);
+                       config, modified_area, unitNormalModified, implicit, flux, jac_i, jac_j);
 
     /*--- Stop preaccumulation. ---*/
 
