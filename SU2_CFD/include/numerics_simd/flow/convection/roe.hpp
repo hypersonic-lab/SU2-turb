@@ -104,10 +104,13 @@ public:
     const auto vector_ij = distanceVector<nDim>(iPoint, jPoint, geometry.nodes->GetCoord());
 
     const auto normal = gatherVariables<nDim>(iEdge, geometry.edges->GetNormal());
+    auto modified_normal = gatherVariables<nDim>(iEdge, geometry.edges->GetModifiedNormal());
     const auto area = norm(normal);
+    auto modified_area = norm(modified_normal);
     VectorDbl<nDim> unitNormal;
     for (size_t iDim = 0; iDim < nDim; ++iDim) {
-      unitNormal(iDim) = normal(iDim) / area;
+      unitNormal(iDim) = normal(iDim) / area;  // original normal direction
+      modified_normal(iDim) = unitNormal(iDim)*modified_area;  // the modified normal is redirected in the original direction
     }
 
     /*--- Reconstructed primitives. ---*/
@@ -166,6 +169,12 @@ public:
     auto flux_i = inviscidProjFlux(V.i, U.i, normal);
     auto flux_j = inviscidProjFlux(V.j, U.j, normal);
 
+    // auto flux_i = inviscidProjFlux(V.i, U.i, modified_normal);
+    // auto flux_j = inviscidProjFlux(V.j, U.j, modified_normal);
+
+    // auto flux_i = inviscidProjFlux(V.i, U.i, normal, blockage); // blockage version
+    // auto flux_j = inviscidProjFlux(V.j, U.j, normal, blockage); // blockage version
+
     VectorDbl<nVar> flux;
     for (size_t iVar = 0; iVar < nVar; ++iVar) {
       flux(iVar) = 0.5 * (flux_i(iVar) + flux_j(iVar));
@@ -175,6 +184,9 @@ public:
     if (implicit) {
       jac_i = inviscidProjJac(gamma, V.i.velocity(), U.i.energy(), normal, kappa);
       jac_j = inviscidProjJac(gamma, V.j.velocity(), U.j.energy(), normal, kappa);
+
+      // jac_i = inviscidProjJac(gamma, V.i.velocity(), U.i.energy(), modified_normal, kappa);
+      // jac_j = inviscidProjJac(gamma, V.j.velocity(), U.j.energy(), modified_normal, kappa);
     }
 
     /*--- Correct for grid motion. ---*/
@@ -197,6 +209,9 @@ public:
 
     derived->finalizeFlux(flux, jac_i, jac_j, implicit, area, unitNormal, V,
                           U, roeAvg, lambda, pMat, iPoint, jPoint, solution);
+
+    // derived->finalizeFlux(flux, jac_i, jac_j, implicit, modified_area, unitNormal, V,
+    //                       U, roeAvg, lambda, pMat, iPoint, jPoint, solution);
 
     /*--- Add the contributions from the base class (static decorator). ---*/
 

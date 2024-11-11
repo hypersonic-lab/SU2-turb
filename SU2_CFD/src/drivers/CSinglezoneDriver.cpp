@@ -108,18 +108,18 @@ void CSinglezoneDriver::ComputeModifiedGeometry(CSolver* solver, CGeometry* geom
   auto geo_nodes = geometry->nodes;
 
   // Modify the volume of the cells
-  for (unsigned long iPoint=0; iPoint<nPoints ; iPoint++){
-    su2double volume = geo_nodes->GetVolume(iPoint);
-    auto blockage = sol_nodes->GetAuxVar(iPoint, I_BLOCKAGE_FACTOR);
+  // for (unsigned long iPoint=0; iPoint<nPoints ; iPoint++){
+  //   su2double volume = geo_nodes->GetVolume(iPoint);
+  //   auto blockage = sol_nodes->GetAuxVar(iPoint, I_BLOCKAGE_FACTOR);
   
-    if (blockage<1){
-      std::cout << std::endl;
-      std::cout << "Point " << iPoint << " has volume " << volume << " and blockage " << blockage << std::endl;
-      geo_nodes->SetVolume(iPoint, volume);
-      std::cout << "After scaling, has volume " << geo_nodes->GetVolume(iPoint) << std::endl;
-      std::cout << std::endl;
-    }
-  }
+  //   if (blockage<1){
+  //     std::cout << std::endl;
+  //     std::cout << "Point " << iPoint << " has volume " << volume << " and blockage " << blockage << std::endl;
+  //     geo_nodes->SetVolume(iPoint, volume);
+  //     std::cout << "After scaling, has volume " << geo_nodes->GetVolume(iPoint) << std::endl;
+  //     std::cout << std::endl;
+  //   }
+  // }
 
   // Modify the surfaces normals
   auto edges = geometry_container[ZONE_0][INST_0][MESH_0]->edges;
@@ -127,24 +127,28 @@ void CSinglezoneDriver::ComputeModifiedGeometry(CSolver* solver, CGeometry* geom
   edges->InstantiateModifiedNormal();
   for (unsigned long iEdge=0; iEdge<nEdge; iEdge++){
     auto normal = edges->GetNormal(iEdge);
-
     unsigned long idP_i = edges->GetNode(iEdge, 0);
     unsigned long idP_j = edges->GetNode(iEdge, 1);
+
+    // simple average of the blockage between the 2 edge points
     double blockage = (sol_nodes->GetAuxVar(idP_i, I_BLOCKAGE_FACTOR) + sol_nodes->GetAuxVar(idP_j, I_BLOCKAGE_FACTOR))/2.0;
 
-    // Reduce the surface
+    // Compute the modified normal
     su2double* modified_normal = new su2double[nDim];
     if (blockage<1){
     std::cout << "Edge " << iEdge << " has normal: [";
     for (size_t iDim=0; iDim<nDim; iDim++){
       std::cout << normal[iDim] << ",";
-      modified_normal[iDim] = normal[iDim]*blockage;
+
+      // modify only the z component of the normal, for the simplest case of NACA0012. This needs to be modified later
+      if (iDim==2){modified_normal[iDim] = normal[iDim]*blockage;}
+      else {modified_normal[iDim] = normal[iDim];}
     }
     std::cout << "] ";
+    std::cout << "and blockage: " << blockage << std::endl; 
 
     edges->SetModifiedNormal(iEdge, modified_normal);
-    std::cout << "and blockage: " << blockage << std::endl; 
-    std::cout << "After rescaling, has normal: [";
+    std::cout << "After rescaling, the modified normal is: [";
     for (size_t iDim=0; iDim<nDim; iDim++){
       std::cout << edges->GetModifiedNormal(iEdge)[iDim] << ",";
     }

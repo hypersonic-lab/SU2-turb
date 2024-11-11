@@ -305,6 +305,25 @@ FORCEINLINE VectorDbl<nDim+2> inviscidProjFlux(const PrimVarType& V,
 }
 
 /*!
+ * \brief Convective projected (onto normal) flux (compressible flow) with blockage.
+ */
+template<class PrimVarType, class ConsVarType, size_t nDim>
+FORCEINLINE VectorDbl<nDim+2> inviscidProjFlux(const PrimVarType& V,
+                                               const ConsVarType& U,
+                                               const VectorDbl<nDim>& normal,
+                                               const Double blockage) {
+  static_assert(ConsVarType::nVar == nDim+2,"");
+  Double mdot = dot(U.momentum(), normal);
+  VectorDbl<nDim+2> flux;
+  flux(0) = mdot*blockage;
+  for (size_t iDim = 0; iDim < nDim; ++iDim) {
+    flux(iDim+1) = (mdot*V.velocity(iDim) + normal(iDim)*V.pressure())*blockage;
+  }
+  flux(nDim+1) = mdot*V.enthalpy()*blockage;
+  return flux;
+}
+
+/*!
  * \brief Jacobian of the convective flux (compressible flow, ideal gas).
  */
 template<size_t nDim, class RandomAccessIterator>

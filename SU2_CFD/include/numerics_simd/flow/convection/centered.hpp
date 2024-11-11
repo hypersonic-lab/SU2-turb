@@ -107,6 +107,8 @@ public:
     auto modified_area = norm(modified_normal);
     VectorDbl<nDim> unitNormal;
     VectorDbl<nDim> unitNormalModified;
+    Double blockage = modified_area/area;
+
     for (size_t iDim = 0; iDim < nDim; ++iDim) {
       unitNormal(iDim) = normal(iDim) / area; // this is the real normal direction, that should be preserved
     }
@@ -145,12 +147,13 @@ public:
 
     /*--- Inviscid fluxes and Jacobians. ---*/
 
-    auto flux = inviscidProjFlux(avgV, avgU, modified_normal);
+    // auto flux = inviscidProjFlux(avgV, avgU, normal, blockage); // blockage version of the flux
+    auto flux = inviscidProjFlux(avgV, avgU, normal);
 
     MatrixDbl<nVar> jac_i, jac_j;
-    if (implicit) {
-      jac_i = inviscidProjJac(gamma, V.i.velocity(), U.i.energy(), modified_normal, 0.5);
-      jac_j = inviscidProjJac(gamma, V.j.velocity(), U.j.energy(), modified_normal, 0.5);
+    if (implicit) { // let's see if is not important to modify the jacobian
+      jac_i = inviscidProjJac(gamma, V.i.velocity(), U.i.energy(), normal, 0.5);
+      jac_j = inviscidProjJac(gamma, V.j.velocity(), U.j.energy(), normal, 0.5);
     }
 
     /*--- Grid motion. ---*/
@@ -158,8 +161,8 @@ public:
     Double projGridVel = 0.0;
     if (dynamicGrid) {
       const auto& gridVel = geometry.nodes->GetGridVel();
-      projGridVel = 0.5*(dot(gatherVariables<nDim>(iPoint,gridVel), modified_normal)+
-                         dot(gatherVariables<nDim>(jPoint,gridVel), modified_normal));
+      projGridVel = 0.5*(dot(gatherVariables<nDim>(iPoint,gridVel), normal)+
+                         dot(gatherVariables<nDim>(jPoint,gridVel), normal));
 
       for (size_t iVar = 0; iVar < nVar; ++iVar) {
         flux(iVar) -= projGridVel * avgU.all(iVar);
@@ -170,19 +173,19 @@ public:
       }
     }
 
-    const Double projVel = dot(avgV.velocity(), modified_normal) - projGridVel;
+    const Double projVel = dot(avgV.velocity(), normal) - projGridVel;
 
     /*--- Finalize in derived class (static polymorphism). ---*/
 
     const auto derived = static_cast<const Derived*>(this);
 
-    derived->finalizeFlux(flux, jac_i, jac_j, implicit, modified_area, projVel, avgV, V,
-                          diffU, iPoint, jPoint, geometry, solution, unitNormalModified);
+    derived->finalizeFlux(flux, jac_i, jac_j, implicit, area, projVel, avgV, V,
+                          diffU, iPoint, jPoint, geometry, solution, unitNormal);
 
     /*--- Add the contributions from the base class (static decorator). ---*/
 
     Base::viscousTerms(iEdge, iPoint, jPoint, avgV, V, solution_, geometry,
-                       config, modified_area, unitNormalModified, implicit, flux, jac_i, jac_j);
+                       config, area, unitNormal, implicit, flux, jac_i, jac_j);
 
     /*--- Stop preaccumulation. ---*/
 
