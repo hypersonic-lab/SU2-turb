@@ -922,7 +922,8 @@ class CFVMFlowSolverBase : public CSolver {
 
         if (nodes->GetDelta_Time(iPoint) != 0.0) {
 
-          su2double Vol = geometry->nodes->GetVolume(iPoint) + geometry->nodes->GetPeriodicVolume(iPoint);
+          // su2double Vol = geometry->nodes->GetVolume(iPoint) + geometry->nodes->GetPeriodicVolume(iPoint);
+          su2double Vol = geometry->nodes->GetModifiedVolume(iPoint) + geometry->nodes->GetModifiedPeriodicVolume(iPoint);
 
           su2double Delta = Vol / nodes->GetDelta_Time(iPoint);
 

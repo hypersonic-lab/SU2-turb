@@ -108,18 +108,24 @@ void CSinglezoneDriver::ComputeModifiedGeometry(CSolver* solver, CGeometry* geom
   auto geo_nodes = geometry->nodes;
 
   // Modify the volume of the cells
-  // for (unsigned long iPoint=0; iPoint<nPoints ; iPoint++){
-  //   su2double volume = geo_nodes->GetVolume(iPoint);
-  //   auto blockage = sol_nodes->GetAuxVar(iPoint, I_BLOCKAGE_FACTOR);
+  geo_nodes->InstantiateModifiedVolume();
+  geo_nodes->InstantiateModifiedPeriodicVolume();
+  for (unsigned long iPoint=0; iPoint<nPoints ; iPoint++){
+    su2double volume = geo_nodes->GetVolume(iPoint);
+    su2double periodic_volume = geo_nodes->GetPeriodicVolume(iPoint);
+    auto blockage = sol_nodes->GetAuxVar(iPoint, I_BLOCKAGE_FACTOR);
   
-  //   if (blockage<1){
-  //     std::cout << std::endl;
-  //     std::cout << "Point " << iPoint << " has volume " << volume << " and blockage " << blockage << std::endl;
-  //     geo_nodes->SetVolume(iPoint, volume);
-  //     std::cout << "After scaling, has volume " << geo_nodes->GetVolume(iPoint) << std::endl;
-  //     std::cout << std::endl;
-  //   }
-  // }
+    if (blockage<1){
+      std::cout << std::endl;
+      std::cout << "Point " << iPoint << " has volume " << volume << " and blockage " << blockage << std::endl;
+      geo_nodes->SetModifiedVolume(iPoint, volume*blockage);
+      std::cout << "After scaling, has volume " << geo_nodes->GetModifiedVolume(iPoint) << std::endl;
+      std::cout << "Point " << iPoint << " has periodic volume " << periodic_volume << " and blockage " << blockage << std::endl;
+      geo_nodes->SetModifiedPeriodicVolume(iPoint, periodic_volume*blockage);
+      std::cout << "After scaling, has periodic volume " << geo_nodes->GetModifiedPeriodicVolume(iPoint) << std::endl;
+      std::cout << std::endl;
+    }
+  }
 
   // Modify the surfaces normals
   auto edges = geometry_container[ZONE_0][INST_0][MESH_0]->edges;

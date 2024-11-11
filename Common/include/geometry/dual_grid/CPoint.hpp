@@ -60,12 +60,15 @@ class CPoint {
                                    for each marker in the same node). */
 
   su2activevector Volume;          /*!< \brief Volume or Area of the control volume in 3D and 2D. */
+  su2activevector modifiedVolume;  /*!< \brief Volume or Area of the modified control volume in 3D and 2D. */
   su2activevector Volume_n;        /*!< \brief Volume at time n. */
   su2activevector Volume_nM1;      /*!< \brief Volume at time n-1. */
   su2activevector Volume_Old;      /*!< \brief Old containers for Volume. */
   su2activevector Volume_n_Old;    /*!< \brief Old containers for Volume at time n. */
   su2activevector Volume_nM1_Old;  /*!< \brief Old containers for Volume at time n-1. */
   su2activevector Periodic_Volume; /*!< \brief Missing component of volume or area of a control volume on a periodic
+                                      marker in 3D and 2D. */
+  su2activevector modifiedPeriodicVolume; /*!< \brief Missing component of modified volume or area of a control volume on a periodic
                                       marker in 3D and 2D. */
 
   su2vector<bool> Domain;   /*!< \brief Indicates if a point must be computed or belong to another boundary */
@@ -560,11 +563,59 @@ class CPoint {
   inline const su2double& GetVolume(unsigned long iPoint) const { return Volume(iPoint); }
 
   /*!
+   * \brief Overwrite the normal vector of an edge.
+   * \param[in] iEdge - Edge index.
+   * \param[in] modified_normal - Vector to overwrite the normal vector with.
+   */
+  void InstantiateModifiedVolume() {
+    modifiedVolume = Volume;
+  }
+
+  /*!
+   * \brief Overwrite the normal vector of an edge.
+   * \param[in] iEdge - Edge index.
+   * \param[in] modified_normal - Vector to overwrite the normal vector with.
+   */
+  void InstantiateModifiedPeriodicVolume() {
+    modifiedPeriodicVolume = Periodic_Volume;
+  }
+
+  /*!
+   * \brief Get volume of the modified control volume.
+   * \param[in] iPoint - Index of the point.
+   * \return Area or volume of the control volume.
+   */
+  inline su2double& GetModifiedVolume(unsigned long iPoint) { return modifiedVolume(iPoint); }
+  inline const su2double& GetModifiedVolume(unsigned long iPoint) const { return modifiedVolume(iPoint); }
+
+  /*!
+   * \brief Get volume of the modified control volume.
+   * \param[in] iPoint - Index of the point.
+   * \return Area or volume of the control volume.
+   */
+  inline su2double& GetModifiedPeriodicVolume(unsigned long iPoint) { return modifiedPeriodicVolume(iPoint); }
+  inline const su2double& GetModifiedPeriodicVolume(unsigned long iPoint) const { return modifiedPeriodicVolume(iPoint); }
+
+  /*!
    * \brief Set the volume of the control volume.
    * \param[in] iPoint - Index of the point.
    * \param[in] volume - Value of the volume.
    */
   inline void SetVolume(unsigned long iPoint, su2double volume) { Volume(iPoint) = volume; }
+
+  /*!
+   * \brief Set the volume of the control volume.
+   * \param[in] iPoint - Index of the point.
+   * \param[in] volume - Value of the volume.
+   */
+  inline void SetModifiedVolume(unsigned long iPoint, su2double volume) { modifiedVolume(iPoint) = volume; }
+
+  /*!
+   * \brief Set the volume of the periodic modified control volume.
+   * \param[in] iPoint - Index of the point.
+   * \param[in] volume - Value of the volume.
+   */
+  inline void SetModifiedPeriodicVolume(unsigned long iPoint, su2double volume) { modifiedPeriodicVolume(iPoint) = volume; }
 
   /*!
    * \brief Adds some area or volume of the CV.
