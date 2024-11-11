@@ -151,7 +151,7 @@ public:
   * \param [in] iDim - Dimension
   * \param [out] Body_Force_Cart - Cartesian body-force component
   */
-  inline virtual su2double GetBody_Force(unsigned short iDim) {
+  inline virtual su2double GetBody_Force(unsigned short iDim) override {
     return Body_Force_Cart[iDim];
   }
 };
