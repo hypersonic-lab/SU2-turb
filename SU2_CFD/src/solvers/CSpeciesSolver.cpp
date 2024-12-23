@@ -332,6 +332,7 @@ void CSpeciesSolver::BC_Inlet(CGeometry* geometry, CSolver** solver_container, C
                               CNumerics* visc_numerics, CConfig* config, unsigned short val_marker) {
 
   const bool implicit = (config->GetKind_TimeIntScheme() == EULER_IMPLICIT);
+  const bool incompressible = (config->GetKind_Regime()==ENUM_REGIME::INCOMPRESSIBLE);
 
   /*--- Loop over all the vertices on this boundary marker ---*/
 
@@ -387,7 +388,7 @@ void CSpeciesSolver::BC_Inlet(CGeometry* geometry, CSolver** solver_container, C
       if (conv_numerics->GetBoundedScalar()) {
         const su2double* velocity = &V_inlet[prim_idx.Velocity()];
         const su2double density = solver_container[FLOW_SOL]->GetNodes()->GetDensity(iPoint);
-        conv_numerics->SetMassFlux(BoundedScalarBCFlux(iPoint, implicit, density, velocity, Normal));
+        conv_numerics->SetMassFlux(BoundedScalarBCFlux(iPoint, implicit, density, velocity, Normal, incompressible));
       }
 
       /*--- Compute the residual using an upwind scheme ---*/

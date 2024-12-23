@@ -276,10 +276,10 @@ class CScalarSolver : public CSolver {
    * \return The mass flux.
    */
   inline su2double BoundedScalarBCFlux(unsigned long iPoint, bool implicit, const su2double& density,
-                                       const su2double* velocity, const su2double* normal) {
+                                       const su2double* velocity, const su2double* normal, bool incompressible = true) {
     const su2double edgeMassFlux = density * GeometryToolbox::DotProduct(nDim, velocity, normal);
-    LinSysRes.AddBlock(iPoint, nodes->GetSolution(iPoint), -edgeMassFlux);
-    if (implicit) Jacobian.AddVal2Diag(iPoint, -edgeMassFlux);
+    if (incompressible) LinSysRes.AddBlock(iPoint, nodes->GetSolution(iPoint), -edgeMassFlux);
+    if (implicit && incompressible) Jacobian.AddVal2Diag(iPoint, -edgeMassFlux);
     return edgeMassFlux;
   }
 

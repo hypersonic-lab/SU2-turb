@@ -150,6 +150,7 @@ void CScalarSolver<VariableType>::Upwind_Residual(CGeometry* geometry, CSolver**
 
   /*--- Apply scalar advection correction terms for bounded scalar problems ---*/
   const bool bounded_scalar = numerics->GetBoundedScalar();
+  const bool incompressible = (config->GetKind_Regime()==ENUM_REGIME::INCOMPRESSIBLE);
 
   /*--- Static arrays of MUSCL-reconstructed flow primitives and turbulence variables (thread safety). ---*/
   su2double solution_i[MAXNVAR] = {0.0}, flowPrimVar_i[MAXNVARFLOW] = {0.0};
@@ -291,7 +292,7 @@ void CScalarSolver<VariableType>::Upwind_Residual(CGeometry* geometry, CSolver**
        * If the ReducerStrategy is used, the corrections need to be applied in a loop over nodes
        * to avoid race conditions in accessing nodes shared by edges handled by different threads. ---*/
 
-      if (bounded_scalar && !ReducerStrategy) {
+      if (bounded_scalar && incompressible && !ReducerStrategy) {
         LinSysRes.AddBlock(iPoint, nodes->GetSolution(iPoint), -EdgeMassFlux);
         LinSysRes.AddBlock(jPoint, nodes->GetSolution(jPoint), EdgeMassFlux);
 

@@ -350,6 +350,10 @@ CEulerSolver::CEulerSolver(CGeometry *geometry, CConfig *config,
 
   CommunicateInitialState(geometry, config);
 
+  /*--- Sizing edge mass flux array ---*/
+  if (config->GetBounded_Scalar())
+    EdgeMassFluxes.resize(geometry->GetnEdge()) = su2double(0.0);
+
   /*--- Add the solver name.. ---*/
   SolverName = "C.FLOW";
 
@@ -1766,6 +1770,7 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
   const bool ideal_gas = (config->GetKind_FluidModel() == STANDARD_AIR) ||
                          (config->GetKind_FluidModel() == IDEAL_GAS);
   const bool low_mach_corr = config->Low_Mach_Correction();
+  const bool bounded_scalar = config->GetBounded_Scalar();
 
   /*--- Use vectorization if the scheme supports it. ---*/
   if (config->GetKind_Upwind_Flow() == UPWIND::ROE && ideal_gas && !low_mach_corr) {
@@ -1945,6 +1950,10 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
     /*--- Compute the residual ---*/
 
     auto residual = numerics->ComputeResidual(config);
+
+    if (bounded_scalar) {
+      EdgeMassFluxes[iEdge] = residual[0];
+    }
 
     /*--- Set the final value of the Roe dissipation coefficient ---*/
 
@@ -6893,6 +6902,7 @@ void CEulerSolver::BC_Inlet(CGeometry *geometry, CSolver **solver_container,
   const auto Kind_Inlet_Cfg = config->GetKind_Inlet();
   const auto Marker_Tag = config->GetMarker_All_TagBound(val_marker);
   const bool tkeNeeded = (config->GetKind_Turb_Model() == TURB_MODEL::SST);
+  //const bool bounded_scalar = config->GetBounded_Scalar();
 
   /*--- Loop over all the vertices on this boundary marker ---*/
 
@@ -7134,6 +7144,7 @@ void CEulerSolver::BC_Inlet(CGeometry *geometry, CSolver **solver_container,
     /*--- Compute the residual using an upwind scheme ---*/
 
     auto residual = conv_numerics->ComputeResidual(config);
+    //if (bounded_scalar) EdgeMassFluxes[iPoint] = residual[0];
 
     /*--- Update residual value ---*/
 
