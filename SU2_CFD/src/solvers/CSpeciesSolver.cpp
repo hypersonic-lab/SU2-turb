@@ -407,6 +407,64 @@ void CSpeciesSolver::BC_Inlet(CGeometry* geometry, CSolver** solver_container, C
   END_SU2_OMP_FOR
 }
 
+void CSpeciesSolver::BC_Isothermal_Wall(CGeometry* geometry, CSolver** solver_container, CNumerics* conv_numerics,
+                                        CNumerics* visc_numerics, CConfig* config, unsigned short val_marker) {
+  const bool bounded_scalar = config->GetBounded_Scalar();
+  if (!bounded_scalar) {
+    BC_HeatFlux_Wall(geometry, solver_container, conv_numerics, visc_numerics, config, val_marker);
+  }
+}
+
+void CSpeciesSolver::BC_HeatFlux_Wall(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics,
+                                      CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) {
+
+  const bool implicit = (config->GetKind_TimeIntScheme() == EULER_IMPLICIT);
+
+  SU2_OMP_FOR_STAT(OMP_MIN_SIZE)
+  for (auto iVertex = 0u; iVertex < geometry->nVertex[val_marker]; iVertex++) {
+
+    const auto iPoint = geometry->vertex[val_marker][iVertex]->GetNode();
+
+    /*--- Check if the node belongs to the domain (i.e, not a halo node) ---*/
+    if (geometry->nodes->GetDomain(iPoint)) {
+
+        /*--- distance to closest neighbor ---*/
+        const auto jPoint = geometry->vertex[val_marker][iVertex]->GetNormal_Neighbor();
+        /*--- Compute dual-grid area and boundary normal ---*/
+
+        const auto Normal = geometry->vertex[val_marker][iVertex]->GetNormal();
+
+        su2double proj_velocity = 0.0;
+        for (unsigned short iDim = 0; iDim < nDim; iDim++) proj_velocity += solver_container[FLOW_SOL]->GetNodes()->GetVelocity(jPoint,iDim) * Normal[iDim];
+        cout<<jPoint<<endl;
+        cout<<solver_container[FLOW_SOL]->GetNodes()->GetVelocity(jPoint,0)<<endl;
+        cout<<solver_container[FLOW_SOL]->GetNodes()->GetVelocity(jPoint,1)<<endl;
+        cout<<Normal[0]<<Normal[1]<<endl;
+        cout<<geometry->nodes->GetCoord(jPoint)[0]<< geometry->nodes->GetCoord(jPoint)[1]<<endl;
+        if (proj_velocity!=0.0){
+          cout<<"projected velocity:"<<proj_velocity<<endl;
+        }
+        su2double density = solver_container[FLOW_SOL]->GetNodes()->GetDensity(jPoint);
+        su2double* scalar = solver_container[SPECIES_SOL]->GetNodes()->GetSolution(jPoint);
+        //su2double* gradient = solver_container[SPECIES_SOL]->GetNodes()->GetGradient(jPoint)[0];
+
+        for (auto iVar = 0u; iVar < nVar; iVar++) {
+          su2double* gradient = solver_container[SPECIES_SOL]->GetNodes()->GetGradient(iPoint)[iVar];
+          su2double* gradient_2 = solver_container[SPECIES_SOL]->GetNodes()->GetGradient(jPoint)[iVar];
+          su2double diffusivity = solver_container[SPECIES_SOL]->GetNodes()->GetDiffusivity(iPoint, iVar);
+          LinSysRes(iPoint, iVar) += 0.5 * density * proj_velocity * scalar[iVar] -
+                                    0.5 * density * diffusivity * (gradient[1] + gradient_2[1]) * Normal[1];
+          // LinSysRes(jPoint, iVar) += 0.5 * density *  proj_velocity * scalar[iVar];
+        }
+
+      if (implicit) {
+        /*--- Change rows of the Jacobian (includes 1 in the diagonal) ---*/
+      }
+    }
+  }
+  END_SU2_OMP_FOR
+}
+
 void CSpeciesSolver::SetInletAtVertex(const su2double *val_inlet,
                                       unsigned short iMarker,
                                       unsigned long iVertex) {

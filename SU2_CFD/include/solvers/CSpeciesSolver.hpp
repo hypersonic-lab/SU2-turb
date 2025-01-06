@@ -153,6 +153,29 @@ class CSpeciesSolver : public CScalarSolver<CSpeciesVariable> {
    * point ---*/
 
   /*!
+   * \brief Impose the Navier-Stokes wall boundary condition.
+   * \param[in] geometry - Geometrical definition of the problem.
+   * \param[in] solver_container - Container vector with all the solutions.
+   * \param[in] conv_numerics - Description of the numerical method.
+   * \param[in] visc_numerics - Description of the numerical method.
+   * \param[in] config - Definition of the particular problem.
+   * \param[in] val_marker - Surface marker where the boundary condition is applied.
+   */
+  void BC_HeatFlux_Wall(CGeometry* geometry, CSolver** solver_container, CNumerics* conv_numerics,
+                        CNumerics* visc_numerics, CConfig* config, unsigned short val_marker) override;
+  /*!
+   * \brief Impose the Navier-Stokes wall boundary condition.
+   * \param[in] geometry - Geometrical definition of the problem.
+   * \param[in] solver_container - Container vector with all the solutions.
+   * \param[in] conv_numerics - Description of the numerical method.
+   * \param[in] visc_numerics - Description of the numerical method.
+   * \param[in] config - Definition of the particular problem.
+   * \param[in] val_marker - Surface marker where the boundary condition is applied.
+   */
+  void BC_Isothermal_Wall(CGeometry* geometry, CSolver** solver_container, CNumerics* conv_numerics,
+                          CNumerics* visc_numerics, CConfig* config, unsigned short val_marker) override;
+
+  /*!
    * \brief Source term computation for axisymmetric flow.
    * \param[in] geometry - Geometrical definition of the problem.
    * \param[in] solver_container - Container vector with all the solutions.
